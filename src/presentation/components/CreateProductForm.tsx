@@ -8,6 +8,9 @@ import type { CreateProductUseCase } from '../../application/usecases/CreateProd
 import {
   TagSelector,
 } from './TagSelector'
+import {
+  App as AntDesignApp,
+} from 'antd'
 
 
 interface CreateProductFormProps {
@@ -26,6 +29,8 @@ export function CreateProductForm({
   onProductCreated,
   onCancel,
 }: CreateProductFormProps) {
+  const { notification } =
+    AntDesignApp.useApp()
   const [name, setName] =
     useState('')
 
@@ -53,9 +58,6 @@ export function CreateProductForm({
   ] =
     useState('')
 
-  const [message, setMessage] =
-    useState('')
-
   const [loading, setLoading] =
     useState(false)
 
@@ -66,7 +68,6 @@ export function CreateProductForm({
     event.preventDefault()
 
     setLoading(true)
-    setMessage('')
 
     const normalizedDescription =
       description.trim() === ''
@@ -123,19 +124,18 @@ export function CreateProductForm({
           },
         )
 
+      notification.success({
+        message: 'Ürün oluşturuldu',
+        description: name,
+      })
       onProductCreated()
     } catch (error) {
-      if (
-        error instanceof Error
-      ) {
-        setMessage(
-          error.message,
-        )
-      } else {
-        setMessage(
-          'Bilinmeyen bir hata oluştu',
-        )
-      }
+      notification.error({
+        message: 'Ürün oluşturulamadı',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
     } finally {
       setLoading(false)
     }
@@ -147,19 +147,29 @@ export function CreateProductForm({
         Yeni Ürün
       </h2>
 
+      <p className="form-required-note">
+        <span aria-hidden="true">*</span>
+        {' '}
+        Zorunlu alanlar
+      </p>
+
       <form
         onSubmit={
           handleSubmit
         }
       >
         <div>
-          <label>
+          <label
+            className="field-label-required"
+            htmlFor="create-product-name"
+          >
             Ürün adı
           </label>
 
           <br />
 
           <input
+            id="create-product-name"
             type="text"
             value={name}
             maxLength={100}
@@ -173,13 +183,17 @@ export function CreateProductForm({
         </div>
 
         <div>
-          <label>
+          <label
+            className="field-label-required"
+            htmlFor="create-product-price"
+          >
             Fiyat
           </label>
 
           <br />
 
           <input
+            id="create-product-price"
             type="number"
             value={price}
             min="0"
@@ -194,13 +208,17 @@ export function CreateProductForm({
         </div>
 
         <div>
-          <label>
+          <label
+            className="field-label-required"
+            htmlFor="create-product-stock"
+          >
             Stok
           </label>
 
           <br />
 
           <input
+            id="create-product-stock"
             type="number"
             value={stock}
             min="0"
@@ -312,11 +330,6 @@ export function CreateProductForm({
         </button>
       </form>
 
-      {message !== '' && (
-        <p>
-          {message}
-        </p>
-      )}
     </div>
   )
 }

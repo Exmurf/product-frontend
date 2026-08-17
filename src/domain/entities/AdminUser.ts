@@ -6,5 +6,7 @@ export interface AdminUser {
   email: string
   role: AdminUserRole
   isActive: boolean
+  isDeleted: boolean
+  deletedAt: string | null
   createdAt: string | null
 }

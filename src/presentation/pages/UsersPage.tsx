@@ -6,12 +6,15 @@ import {
 
 import {
   ClearOutlined,
+  CheckCircleOutlined,
   DeleteOutlined,
   EyeOutlined,
   MoreOutlined,
+  StopOutlined,
 } from '@ant-design/icons'
 import {
   Alert,
+  App as AntDesignApp,
   Button,
   Card,
   Descriptions,
@@ -35,17 +38,24 @@ import type {
   GetUsersUseCase,
 } from '../../application/usecases/GetUsersUseCase'
 import type {
+  UpdateUserActiveUseCase,
+} from '../../application/usecases/UpdateUserActiveUseCase'
+import type {
   AdminUser,
   AdminUserRole,
 } from '../../domain/entities/AdminUser'
 import type {
   UserQuery,
 } from '../../domain/repositories/UserRepository'
+import {
+  PageHeader,
+} from '../components/PageHeader'
 
 
 interface UsersPageProps {
   getUsersUseCase: GetUsersUseCase
   deleteUserUseCase: DeleteUserUseCase
+  updateUserActiveUseCase: UpdateUserActiveUseCase
 }
 
 
@@ -95,8 +105,11 @@ function formatCreatedAt(
 export function UsersPage({
   getUsersUseCase,
   deleteUserUseCase,
+  updateUserActiveUseCase,
 }: UsersPageProps) {
   const navigate = useNavigate()
+  const { notification } =
+    AntDesignApp.useApp()
   const [modal, modalContextHolder] =
     Modal.useModal()
   const [users, setUsers] =
@@ -109,15 +122,17 @@ export function UsersPage({
     useState('')
   const [activeInput, setActiveInput] =
     useState('')
+  const [deletedInput, setDeletedInput] =
+    useState('')
   const [loading, setLoading] =
     useState(true)
   const [error, setError] =
     useState('')
-  const [actionMessage, setActionMessage] =
-    useState('')
   const [totalItems, setTotalItems] =
     useState(0)
   const [deletingPublicId, setDeletingPublicId] =
+    useState<string | null>(null)
+  const [updatingPublicId, setUpdatingPublicId] =
     useState<string | null>(null)
   const [selectedUser, setSelectedUser] =
     useState<AdminUser | null>(null)
@@ -162,12 +177,14 @@ export function UsersPage({
           : searchInput.trim()
       const role = parseRole(roleInput)
       const isActive = parseActive(activeInput)
+      const isDeleted = parseActive(deletedInput)
 
       setQuery((current) => {
         if (
           current.search === search &&
           current.role === role &&
-          current.isActive === isActive
+          current.isActive === isActive &&
+          current.isDeleted === isDeleted
         ) {
           return current
         }
@@ -178,6 +195,7 @@ export function UsersPage({
           search,
           role,
           isActive,
+          isDeleted,
         }
       })
     }, filterDebounceMs)
@@ -185,13 +203,18 @@ export function UsersPage({
     return () => {
       window.clearTimeout(timer)
     }
-  }, [searchInput, roleInput, activeInput])
+  }, [
+    searchInput,
+    roleInput,
+    activeInput,
+    deletedInput,
+  ])
 
   function handleClearFilters() {
     setSearchInput('')
     setRoleInput('')
     setActiveInput('')
-    setActionMessage('')
+    setDeletedInput('')
     setQuery((current) => ({
       page: 1,
       pageSize: current.pageSize,
@@ -203,24 +226,56 @@ export function UsersPage({
   ) {
     try {
       setDeletingPublicId(user.publicId)
-      setActionMessage('')
 
       await deleteUserUseCase
         .execute(user.publicId)
 
       setSelectedUser(null)
-      setActionMessage(
-        `${user.email} kullanıcısı pasifleştirildi.`,
-      )
+      notification.success({
+        message: 'Kullanıcı silindi',
+        description: user.email,
+      })
       await loadUsers()
     } catch (error) {
-      setActionMessage(
-        error instanceof Error
+      notification.error({
+        message: 'Kullanıcı silinemedi',
+        description: error instanceof Error
           ? error.message
           : 'Kullanıcı silinemedi',
-      )
+      })
     } finally {
       setDeletingPublicId(null)
+    }
+  }
+
+  async function handleUpdateActive(
+    user: AdminUser,
+  ) {
+    const nextIsActive = !user.isActive
+
+    try {
+      setUpdatingPublicId(user.publicId)
+      await updateUserActiveUseCase.execute(
+        user.publicId,
+        nextIsActive,
+      )
+      setSelectedUser(null)
+      notification.success({
+        message: nextIsActive
+          ? 'Kullanıcı aktifleştirildi'
+          : 'Kullanıcı pasifleştirildi',
+        description: user.email,
+      })
+      await loadUsers()
+    } catch (error) {
+      notification.error({
+        message: 'Kullanıcı durumu güncellenemedi',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
+    } finally {
+      setUpdatingPublicId(null)
     }
   }
 
@@ -238,9 +293,22 @@ export function UsersPage({
           type: 'divider',
         },
         {
+          key: 'toggle-active',
+          disabled: user.isDeleted,
+          icon: user.isActive
+            ? <StopOutlined />
+            : <CheckCircleOutlined />,
+          label: user.isActive
+            ? 'Pasif yap'
+            : 'Aktif yap',
+        },
+        {
+          type: 'divider',
+        },
+        {
           key: 'delete',
           danger: true,
-          disabled: !user.isActive,
+          disabled: user.isDeleted,
           icon: <DeleteOutlined />,
           label: 'Sil',
         },
@@ -251,10 +319,26 @@ export function UsersPage({
           return
         }
 
+        if (key === 'toggle-active') {
+          modal.confirm({
+            title: user.isActive
+              ? 'Kullanıcı pasifleştirilsin mi?'
+              : 'Kullanıcı aktifleştirilsin mi?',
+            content: user.email,
+            okText: user.isActive
+              ? 'Pasif yap'
+              : 'Aktif yap',
+            onOk: () => {
+              return handleUpdateActive(user)
+            },
+          })
+          return
+        }
+
         if (key === 'delete') {
           modal.confirm({
-            title: 'Kullanıcı pasifleştirilsin mi?',
-            content: user.email,
+            title: 'Kullanıcı silinsin mi?',
+            content: `${user.email} hesabı silinecek. Bu işlem geri alınamaz.`,
             okText: 'Sil',
             cancelText: 'Vazgeç',
             okButtonProps: {
@@ -310,6 +394,21 @@ export function UsersPage({
         ),
       },
       {
+        title: 'Hesap',
+        dataIndex: 'isDeleted',
+        key: 'isDeleted',
+        width: 120,
+        render: (isDeleted: boolean) => (
+          <Tag color={
+            isDeleted
+              ? 'red'
+              : 'blue'
+          }>
+            {isDeleted ? 'Silinmiş' : 'Mevcut'}
+          </Tag>
+        ),
+      },
+      {
         title: 'Kayıt tarihi',
         dataIndex: 'createdAt',
         key: 'createdAt',
@@ -332,6 +431,8 @@ export function UsersPage({
               icon={<MoreOutlined />}
               loading={
                 deletingPublicId ===
+                  user.publicId ||
+                updatingPublicId ===
                   user.publicId
               }
             >
@@ -345,17 +446,11 @@ export function UsersPage({
   return (
     <main className="users-page">
       {modalContextHolder}
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">
-            Yönetim
-          </span>
-          <h1>Kullanıcılar</h1>
-          <p>
-            Kullanıcıları filtreleyin, ayrıntılarını görüntüleyin ve erişimlerini yönetin.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        section="Yönetim"
+        title="Kullanıcılar"
+        description="Kullanıcıları filtreleyin, ayrıntılarını görüntüleyin ve erişimlerini yönetin."
+      />
 
       <Card
         className="management-card"
@@ -400,12 +495,26 @@ export function UsersPage({
               <option value="false">Pasif</option>
             </select>
           </div>
+          <div>
+            <label>Hesap</label>
+            <select
+              value={deletedInput}
+              onChange={(event) => {
+                setDeletedInput(event.target.value)
+              }}
+            >
+              <option value="">Tümü</option>
+              <option value="false">Mevcut</option>
+              <option value="true">Silinmiş</option>
+            </select>
+          </div>
           <Button
             icon={<ClearOutlined />}
             disabled={
               searchInput === '' &&
               roleInput === '' &&
-              activeInput === ''
+              activeInput === '' &&
+              deletedInput === ''
             }
             onClick={handleClearFilters}
           >
@@ -413,13 +522,6 @@ export function UsersPage({
           </Button>
         </div>
 
-        {actionMessage !== '' && (
-          <Alert
-            showIcon
-            type="info"
-            message={actionMessage}
-          />
-        )}
         {error !== '' && (
           <Alert
             showIcon
@@ -434,7 +536,7 @@ export function UsersPage({
           columns={columns}
           dataSource={users}
           loading={loading}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1020 }}
           locale={{
             emptyText: 'Kullanıcı bulunamadı',
           }}
@@ -489,6 +591,16 @@ export function UsersPage({
                   ? 'Aktif'
                   : 'Pasif'}
               </Descriptions.Item>
+              <Descriptions.Item label="Hesap">
+                {selectedUser.isDeleted
+                  ? 'Silinmiş'
+                  : 'Mevcut'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Silinme tarihi">
+                {formatCreatedAt(
+                  selectedUser.deletedAt,
+                )}
+              </Descriptions.Item>
               <Descriptions.Item label="Kayıt tarihi">
                 {formatCreatedAt(
                   selectedUser.createdAt,
@@ -502,6 +614,7 @@ export function UsersPage({
             >
               <Button
                 type="primary"
+                disabled={selectedUser.isDeleted}
                 onClick={() => {
                   navigate(
                     `/profiles/${selectedUser.publicId}`,

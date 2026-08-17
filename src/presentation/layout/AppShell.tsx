@@ -6,7 +6,6 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ShopOutlined,
-  TagsOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -21,7 +20,6 @@ import {
   Menu,
   Space,
   Tag,
-  Typography,
   type MenuProps,
 } from 'antd'
 
@@ -109,11 +107,6 @@ export function AppShell({
       ? [
           {
             type: 'divider' as const,
-          },
-          {
-            key: '/tags',
-            icon: <TagsOutlined />,
-            label: 'Etiketler',
           },
           {
             key: '/users',
@@ -312,14 +305,6 @@ export function AppShell({
               }
             }}
           />
-
-          <div className="header-context">
-            <Typography.Text
-              type="secondary"
-            >
-              Yönetim paneli
-            </Typography.Text>
-          </div>
 
           <Dropdown
             menu={{

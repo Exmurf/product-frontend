@@ -6,6 +6,7 @@ export type ActivityAction =
   | 'TAG_DELETE'
   | 'PROFILE_UPDATE'
   | 'USER_REGISTER'
+  | 'USER_STATUS_UPDATE'
   | 'USER_DELETE'
   | 'AUTH_LOGIN'
   | 'AUTH_LOGOUT'

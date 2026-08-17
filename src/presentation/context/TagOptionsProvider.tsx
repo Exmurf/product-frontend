@@ -1,29 +1,13 @@
-import {
-  createContext,
-  useContext,
-  type ReactNode,
+import type {
+  ReactNode,
 } from 'react'
 
 import type {
   Tag,
 } from '../../domain/entities/Tag'
-
-
-interface TagOptionsContextValue {
-  tags: Tag[]
-  loading: boolean
-  error: string
-}
-
-
-const TagOptionsContext =
-  createContext<
-    TagOptionsContextValue
-  >({
-    tags: [],
-    loading: false,
-    error: '',
-  })
+import {
+  TagOptionsContext,
+} from './TagOptionsContext'
 
 
 interface TagOptionsProviderProps {
@@ -50,13 +34,5 @@ export function TagOptionsProvider({
     >
       {children}
     </TagOptionsContext.Provider>
-  )
-}
-
-
-export function useTagOptions():
-  TagOptionsContextValue {
-  return useContext(
-    TagOptionsContext,
   )
 }

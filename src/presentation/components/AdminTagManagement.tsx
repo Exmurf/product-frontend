@@ -12,8 +12,10 @@ import {
 } from '@ant-design/icons'
 import {
   Alert,
+  App as AntDesignApp,
   Button,
   Card,
+  Drawer,
   Input,
   Popconfirm,
   Table,
@@ -31,7 +33,7 @@ import type {
 } from '../../domain/entities/Tag'
 import {
   useTagOptions,
-} from '../context/TagOptionsContext'
+} from '../context/useTagOptions'
 
 
 interface AdminTagManagementProps {
@@ -46,6 +48,8 @@ export function AdminTagManagement({
   deleteTagUseCase,
   onTagsChanged,
 }: AdminTagManagementProps) {
+  const { notification } =
+    AntDesignApp.useApp()
   const {
     tags,
     loading: tagsLoading,
@@ -56,8 +60,8 @@ export function AdminTagManagement({
     useState('')
   const [search, setSearch] =
     useState('')
-  const [message, setMessage] =
-    useState('')
+  const [showCreateForm, setShowCreateForm] =
+    useState(false)
   const [creating, setCreating] =
     useState(false)
   const [deletingId, setDeletingId] =
@@ -91,23 +95,25 @@ export function AdminTagManagement({
 
     try {
       setCreating(true)
-      setMessage('')
 
       const createdTag =
         await createTagUseCase
           .execute(name)
 
       setName('')
-      setMessage(
-        `Tag oluşturuldu: ${createdTag.name}`,
-      )
+      setShowCreateForm(false)
+      notification.success({
+        message: 'Tag oluşturuldu',
+        description: createdTag.name,
+      })
       await onTagsChanged()
     } catch (error) {
-      setMessage(
-        error instanceof Error
+      notification.error({
+        message: 'Tag oluşturulamadı',
+        description: error instanceof Error
           ? error.message
           : 'Tag oluşturulamadı',
-      )
+      })
     } finally {
       setCreating(false)
     }
@@ -118,21 +124,22 @@ export function AdminTagManagement({
   ) {
     try {
       setDeletingId(tag.publicId)
-      setMessage('')
 
       await deleteTagUseCase
         .execute(tag.publicId)
 
-      setMessage(
-        `Tag silindi: ${tag.name}`,
-      )
+      notification.success({
+        message: 'Tag silindi',
+        description: tag.name,
+      })
       await onTagsChanged()
     } catch (error) {
-      setMessage(
-        error instanceof Error
+      notification.error({
+        message: 'Tag silinemedi',
+        description: error instanceof Error
           ? error.message
           : 'Tag silinemedi',
-      )
+      })
     } finally {
       setDeletingId(null)
     }
@@ -196,32 +203,19 @@ export function AdminTagManagement({
     <Card
       className="management-card"
       title="Tag listesi"
-    >
-      <form
-        className="inline-create-form"
-        onSubmit={handleSubmit}
-      >
-        <Input
-          value={name}
-          maxLength={50}
-          required
-          disabled={creating}
-          placeholder="Yeni tag adı"
-          onChange={(event) => {
-            setName(event.target.value)
-          }}
-        />
+      extra={(
         <Button
           type="primary"
-          htmlType="submit"
           icon={<PlusOutlined />}
-          loading={creating}
+          onClick={() => {
+            setShowCreateForm(true)
+          }}
         >
-          Tag oluştur
+          Yeni tag ekle
         </Button>
-      </form>
-
-      <div className="table-filters compact">
+      )}
+    >
+      <div className="table-filters compact tag-table-filters">
         <Input
           allowClear
           prefix={<SearchOutlined />}
@@ -241,14 +235,6 @@ export function AdminTagManagement({
           Filtreleri temizle
         </Button>
       </div>
-
-      {message !== '' && (
-        <Alert
-          showIcon
-          type="info"
-          message={message}
-        />
-      )}
 
       {tagsError !== '' && (
         <Alert
@@ -276,6 +262,61 @@ export function AdminTagManagement({
           emptyText: 'Tag bulunamadı',
         }}
       />
+
+      <Drawer
+        title="Yeni tag ekle"
+        width={480}
+        open={showCreateForm}
+        destroyOnHidden
+        onClose={() => {
+          if (!creating) {
+            setShowCreateForm(false)
+            setName('')
+          }
+        }}
+      >
+        <form
+          className="tag-create-form"
+          onSubmit={handleSubmit}
+        >
+          <div>
+            <label htmlFor="new-tag-name">
+              Tag adı
+            </label>
+            <Input
+              id="new-tag-name"
+              value={name}
+              maxLength={50}
+              required
+              autoFocus
+              disabled={creating}
+              placeholder="Örn. Elektronik"
+              onChange={(event) => {
+                setName(event.target.value)
+              }}
+            />
+          </div>
+          <div className="drawer-form-actions">
+            <Button
+              onClick={() => {
+                setShowCreateForm(false)
+                setName('')
+              }}
+              disabled={creating}
+            >
+              İptal
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              icon={<PlusOutlined />}
+              loading={creating}
+            >
+              Tag oluştur
+            </Button>
+          </div>
+        </form>
+      </Drawer>
     </Card>
   )
 }

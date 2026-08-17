@@ -64,7 +64,12 @@ createRoot(
         },
       }}
     >
-      <AntDesignApp>
+      <AntDesignApp
+        notification={{
+          placement: 'topRight',
+          duration: 4,
+        }}
+      >
         <BrowserRouter>
           <App />
         </BrowserRouter>

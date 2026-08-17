@@ -25,10 +25,19 @@ import type {
 import type {
   GetTagsUseCase,
 } from '../../application/usecases/GetTagsUseCase'
+import type {
+  CreateTagUseCase,
+} from '../../application/usecases/CreateTagUseCase'
+import type {
+  DeleteTagUseCase,
+} from '../../application/usecases/DeleteTagUseCase'
 
 import {
   ProductManagement,
 } from '../components/ProductManagement'
+import {
+  PageHeader,
+} from '../components/PageHeader'
 
 
 interface ProductsPageProps {
@@ -57,6 +66,12 @@ interface ProductsPageProps {
   getTagsUseCase:
     GetTagsUseCase
 
+  createTagUseCase:
+    CreateTagUseCase
+
+  deleteTagUseCase:
+    DeleteTagUseCase
+
 }
 
 
@@ -70,18 +85,16 @@ export function ProductsPage({
   updateProductUseCase,
   deleteProductUseCase,
   getTagsUseCase,
+  createTagUseCase,
+  deleteTagUseCase,
 }: ProductsPageProps) {
   return (
     <main>
-      <header className="page-heading">
-        <div>
-          <span className="eyebrow">
-            Ürün kataloğu
-          </span>
-          <h1>
-            Ürünler
-          </h1>
-          <p>
+      <PageHeader
+        section="Envanter"
+        title="Ürünler"
+        description={(
+          <>
             Ürünlerinizi, stok seviyelerini ve etiketlerini tek görünümde yönetin.
             {' '}
             <strong>{currentUserEmail}</strong>
@@ -90,9 +103,9 @@ export function ProductsPage({
             {currentUserRole === 'admin'
               ? ' tüm kayıtları görüntülüyor.'
               : ' kendi kayıtlarını görüntülüyor.'}
-          </p>
-        </div>
-      </header>
+          </>
+        )}
+      />
 
       <ProductManagement
         key={authVersion}
@@ -116,6 +129,15 @@ export function ProductsPage({
         }
         getTagsUseCase={
           getTagsUseCase
+        }
+        createTagUseCase={
+          createTagUseCase
+        }
+        deleteTagUseCase={
+          deleteTagUseCase
+        }
+        currentUserRole={
+          currentUserRole
         }
       />
     </main>

@@ -31,6 +31,15 @@ import type {
 import type {
   GetTagsUseCase,
 } from '../../application/usecases/GetTagsUseCase'
+import type {
+  CreateTagUseCase,
+} from '../../application/usecases/CreateTagUseCase'
+import type {
+  DeleteTagUseCase,
+} from '../../application/usecases/DeleteTagUseCase'
+import type {
+  UserRole,
+} from '../../domain/entities/CurrentUser'
 
 import {
   CreateProductForm,
@@ -39,19 +48,24 @@ import {
 import {
   ProductList,
 } from './ProductList'
+import {
+  AdminTagManagement,
+} from './AdminTagManagement'
 
 import {
   TagOptionsProvider,
-} from '../context/TagOptionsContext'
+} from '../context/TagOptionsProvider'
 
 import {
   PlusOutlined,
+  TagsOutlined,
 } from '@ant-design/icons'
 
 import {
   Button,
   Card,
   Drawer,
+  Space,
 } from 'antd'
 
 
@@ -74,6 +88,15 @@ interface ProductManagementProps {
   getTagsUseCase:
     GetTagsUseCase
 
+  createTagUseCase:
+    CreateTagUseCase
+
+  deleteTagUseCase:
+    DeleteTagUseCase
+
+  currentUserRole:
+    UserRole | null
+
   authVersion: number
 }
 
@@ -85,6 +108,9 @@ export function ProductManagement({
   updateProductUseCase,
   deleteProductUseCase,
   getTagsUseCase,
+  createTagUseCase,
+  deleteTagUseCase,
+  currentUserRole,
   authVersion,
 }: ProductManagementProps) {
   const [
@@ -98,6 +124,11 @@ export function ProductManagement({
     setShowCreateForm,
   ] =
     useState(false)
+
+  const [
+    showTagManagement,
+    setShowTagManagement,
+  ] = useState(false)
 
   const [
     tags,
@@ -199,15 +230,31 @@ export function ProductManagement({
           className="management-card product-management-card"
           title="Ürün listesi"
           extra={(
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setShowCreateForm(true)
-              }}
+            <Space
+              className="management-actions"
+              wrap
             >
-              Yeni ürün ekle
-            </Button>
+              {currentUserRole === 'admin' && (
+                <Button
+                  icon={<TagsOutlined />}
+                  onClick={() => {
+                    setShowTagManagement(true)
+                  }}
+                >
+                  Tagleri yönet
+                </Button>
+              )}
+
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setShowCreateForm(true)
+                }}
+              >
+                Yeni ürün ekle
+              </Button>
+            </Space>
           )}
         >
           <ProductList
@@ -257,6 +304,30 @@ export function ProductManagement({
                   false,
                 )
               }}
+            />
+          )}
+        </Drawer>
+
+        <Drawer
+          title="Tagleri yönet"
+          width={760}
+          open={showTagManagement}
+          destroyOnHidden
+          onClose={() => {
+            setShowTagManagement(false)
+          }}
+        >
+          {showTagManagement && (
+            <AdminTagManagement
+              createTagUseCase={
+                createTagUseCase
+              }
+              deleteTagUseCase={
+                deleteTagUseCase
+              }
+              onTagsChanged={
+                loadTags
+              }
             />
           )}
         </Drawer>

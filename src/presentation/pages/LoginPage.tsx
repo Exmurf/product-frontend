@@ -15,7 +15,7 @@ import {
 } from '@ant-design/icons'
 
 import {
-  Alert,
+  App as AntDesignApp,
   Button,
   Input,
   Segmented,
@@ -53,6 +53,8 @@ export function LoginPage({
 }: LoginPageProps) {
   const navigate =
     useNavigate()
+  const { notification } =
+    AntDesignApp.useApp()
 
   const [
     mode,
@@ -86,19 +88,6 @@ export function LoginPage({
   ] =
     useState(false)
 
-  const [
-    error,
-    setError,
-  ] =
-    useState('')
-
-  const [
-    message,
-    setMessage,
-  ] =
-    useState('')
-
-
   function switchMode(
     newMode: AuthMode,
   ) {
@@ -110,9 +99,6 @@ export function LoginPage({
 
     setConfirmPassword('')
 
-    setError('')
-
-    setMessage('')
   }
 
 
@@ -125,10 +111,6 @@ export function LoginPage({
     try {
       setLoading(true)
 
-      setError('')
-
-      setMessage('')
-
       await loginUseCase
         .execute(
           email,
@@ -137,6 +119,10 @@ export function LoginPage({
 
       onLoginSuccess()
 
+      notification.success({
+        message: 'Giriş başarılı',
+      })
+
       navigate(
         '/products',
         {
@@ -144,17 +130,12 @@ export function LoginPage({
         },
       )
     } catch (error) {
-      if (
-        error instanceof Error
-      ) {
-        setError(
-          error.message,
-        )
-      } else {
-        setError(
-          'Giriş yapılamadı',
-        )
-      }
+      notification.error({
+        message: 'Giriş yapılamadı',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
     } finally {
       setLoading(false)
     }
@@ -171,19 +152,16 @@ export function LoginPage({
       password !==
       confirmPassword
     ) {
-      setError(
-        'Şifreler eşleşmiyor',
-      )
+      notification.error({
+        message: 'Kayıt oluşturulamadı',
+        description: 'Şifreler eşleşmiyor',
+      })
 
       return
     }
 
     try {
       setLoading(true)
-
-      setError('')
-
-      setMessage('')
 
       const user =
         await registerUseCase
@@ -204,21 +182,17 @@ export function LoginPage({
         'login',
       )
 
-      setMessage(
-        'Kayıt başarılı. Şimdi giriş yapabilirsiniz.',
-      )
+      notification.success({
+        message: 'Kayıt başarılı',
+        description: 'Şimdi giriş yapabilirsiniz.',
+      })
     } catch (error) {
-      if (
-        error instanceof Error
-      ) {
-        setError(
-          error.message,
-        )
-      } else {
-        setError(
-          'Kayıt oluşturulamadı',
-        )
-      }
+      notification.error({
+        message: 'Kayıt oluşturulamadı',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
     } finally {
       setLoading(false)
     }
@@ -384,23 +358,6 @@ export function LoginPage({
             </Button>
           </form>
 
-          {message !== '' && (
-            <Alert
-              className="auth-alert"
-              type="success"
-              showIcon
-              message={message}
-            />
-          )}
-
-          {error !== '' && (
-            <Alert
-              className="auth-alert"
-              type="error"
-              showIcon
-              message={error}
-            />
-          )}
         </section>
       </div>
     </main>

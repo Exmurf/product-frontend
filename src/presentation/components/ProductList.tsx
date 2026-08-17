@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons'
 import {
   Alert,
+  App as AntDesignApp,
   Button,
   Descriptions,
   Drawer,
@@ -131,6 +132,8 @@ export function ProductList({
   onProductsChanged,
 }: ProductListProps) {
   const navigate = useNavigate()
+  const { notification } =
+    AntDesignApp.useApp()
   const [modal, modalContextHolder] =
     Modal.useModal()
   const [products, setProducts] =
@@ -159,8 +162,6 @@ export function ProductList({
     useState<string | null>(null)
   const [deletingPublicId, setDeletingPublicId] =
     useState<string | null>(null)
-  const [actionMessage, setActionMessage] =
-    useState('')
   const [filterError, setFilterError] =
     useState('')
 
@@ -195,9 +196,10 @@ export function ProductList({
             setTotalItems(0)
             setError(message)
           } else {
-            setActionMessage(
-              `Liste güncellenemedi: ${message}`,
-            )
+            notification.error({
+              message: 'Ürün listesi güncellenemedi',
+              description: message,
+            })
           }
         } finally {
           if (showLoading) {
@@ -205,7 +207,11 @@ export function ProductList({
           }
         }
       },
-      [getProductsUseCase, query],
+      [
+        getProductsUseCase,
+        query,
+        notification,
+      ],
     )
 
   useEffect(() => {
@@ -293,7 +299,6 @@ export function ProductList({
     setMaxPriceInput('')
     setMinStockInput('')
     setFilterError('')
-    setActionMessage('')
     setQuery((current) => ({
       ...current,
       page: 1,
@@ -354,17 +359,17 @@ export function ProductList({
   ) {
     try {
       setDetailLoadingId(publicId)
-      setActionMessage('')
       const product =
         await getProductByIdUseCase
           .execute(publicId)
       setDetailProduct(product)
     } catch (error) {
-      setActionMessage(
-        error instanceof Error
+      notification.error({
+        message: 'Ürün detayı alınamadı',
+        description: error instanceof Error
           ? error.message
           : 'Ürün detayı alınamadı',
-      )
+      })
     } finally {
       setDetailLoadingId(null)
     }
@@ -375,19 +380,22 @@ export function ProductList({
   ) {
     try {
       setDeletingPublicId(product.publicId)
-      setActionMessage('')
       await deleteProductUseCase
         .execute(product.publicId)
       setDetailProduct(null)
       setEditingPublicId(null)
-      setActionMessage('Ürün silindi.')
+      notification.success({
+        message: 'Ürün silindi',
+        description: product.name,
+      })
       onProductsChanged()
     } catch (error) {
-      setActionMessage(
-        error instanceof Error
+      notification.error({
+        message: 'Ürün silinemedi',
+        description: error instanceof Error
           ? error.message
           : 'Ürün silinemedi',
-      )
+      })
     } finally {
       setDeletingPublicId(null)
     }
@@ -682,13 +690,6 @@ export function ProductList({
         />
       )}
 
-      {actionMessage !== '' && (
-        <Alert
-          showIcon
-          type="info"
-          message={actionMessage}
-        />
-      )}
       {error !== '' && (
         <Alert
           showIcon
@@ -821,9 +822,6 @@ export function ProductList({
             }
             onUpdated={() => {
               setEditingPublicId(null)
-              setActionMessage(
-                'Ürün güncellendi.',
-              )
               onProductsChanged()
             }}
             onCancel={() => {

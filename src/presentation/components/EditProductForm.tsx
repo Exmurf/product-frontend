@@ -9,6 +9,9 @@ import type { UpdateProductUseCase } from '../../application/usecases/UpdateProd
 import {
   TagSelector,
 } from './TagSelector'
+import {
+  App as AntDesignApp,
+} from 'antd'
 
 
 interface EditProductFormProps {
@@ -30,6 +33,8 @@ export function EditProductForm({
   onUpdated,
   onCancel,
 }: EditProductFormProps) {
+  const { notification } =
+    AntDesignApp.useApp()
   const [name, setName] =
     useState(
       product.name,
@@ -83,9 +88,6 @@ export function EditProductForm({
         ),
   )
 
-  const [message, setMessage] =
-    useState('')
-
   const [loading, setLoading] =
     useState(false)
 
@@ -96,7 +98,6 @@ export function EditProductForm({
     event.preventDefault()
 
     setLoading(true)
-    setMessage('')
 
     const normalizedDescription =
       description.trim() === ''
@@ -148,19 +149,18 @@ export function EditProductForm({
         },
       )
 
+      notification.success({
+        message: 'Ürün başarıyla güncellendi',
+        description: name,
+      })
       onUpdated()
     } catch (error) {
-      if (
-        error instanceof Error
-      ) {
-        setMessage(
-          error.message,
-        )
-      } else {
-        setMessage(
-          'Bilinmeyen bir hata oluştu',
-        )
-      }
+      notification.error({
+        message: 'Ürün güncellenemedi',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
     } finally {
       setLoading(false)
     }
@@ -336,11 +336,6 @@ export function EditProductForm({
         </button>
       </form>
 
-      {message !== '' && (
-        <p>
-          {message}
-        </p>
-      )}
     </div>
   )
 }

@@ -15,9 +15,14 @@ import {
 import {
   AppRoutes,
 } from './presentation/routing/AppRoutes'
+import {
+  App as AntDesignApp,
+} from 'antd'
 
 
 function App() {
+  const { notification } =
+    AntDesignApp.useApp()
   const [
     currentUserEmail,
     setCurrentUserEmail,
@@ -119,10 +124,12 @@ function App() {
           return
         }
 
-        console.error(
-          'Current user alınamadı:',
-          error,
-        )
+        notification.error({
+          message: 'Kullanıcı bilgisi alınamadı',
+          description: error instanceof Error
+            ? error.message
+            : 'Oturum doğrulanamadı',
+        })
       }
     }
 
@@ -135,6 +142,7 @@ function App() {
     isAuthenticated,
     authVersion,
     services.getCurrentUserUseCase,
+    notification,
   ])
 
 
@@ -161,6 +169,10 @@ function App() {
       .execute()
 
     clearSessionState()
+
+    notification.success({
+      message: 'Çıkış yapıldı',
+    })
   }
 
 

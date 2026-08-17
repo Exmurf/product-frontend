@@ -8,6 +8,9 @@ import {
   useNavigate,
   useParams,
 } from 'react-router'
+import {
+  App as AntDesignApp,
+} from 'antd'
 
 import type { Profile } from '../../domain/entities/Profile'
 
@@ -41,6 +44,8 @@ export function UserProfilePage({
 }: UserProfilePageProps) {
   const navigate =
     useNavigate()
+  const { notification } =
+    AntDesignApp.useApp()
 
   const {
     userPublicId,
@@ -87,12 +92,6 @@ export function UserProfilePage({
   const [
     error,
     setError,
-  ] =
-    useState('')
-
-  const [
-    message,
-    setMessage,
   ] =
     useState('')
 
@@ -180,7 +179,6 @@ export function UserProfilePage({
     try {
       setSaving(true)
       setError('')
-      setMessage('')
 
       const updatedProfile =
         await updateUserProfileUseCase
@@ -223,21 +221,16 @@ export function UserProfilePage({
           '',
       )
 
-      setMessage(
-        'Kullanıcı profili güncellendi.',
-      )
+      notification.success({
+        message: 'Kullanıcı profili güncellendi',
+      })
     } catch (error) {
-      if (
-        error instanceof Error
-      ) {
-        setError(
-          error.message,
-        )
-      } else {
-        setError(
-          'Kullanıcı profili güncellenemedi',
-        )
-      }
+      notification.error({
+        message: 'Kullanıcı profili güncellenemedi',
+        description: error instanceof Error
+          ? error.message
+          : 'Bilinmeyen bir hata oluştu',
+      })
     } finally {
       setSaving(false)
     }
@@ -390,17 +383,6 @@ export function UserProfilePage({
         </button>
       </form>
 
-      {message !== '' && (
-        <p>
-          {message}
-        </p>
-      )}
-
-      {error !== '' && (
-        <p>
-          Hata: {error}
-        </p>
-      )}
     </main>
   )
 }

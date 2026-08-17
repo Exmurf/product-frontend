@@ -36,6 +36,9 @@ import type {
 import type {
   ActivityLogQuery,
 } from '../../domain/repositories/ActivityLogRepository'
+import {
+  PageHeader,
+} from '../components/PageHeader'
 
 
 interface ActivityLogsPageProps {
@@ -52,6 +55,7 @@ const actions: ActivityAction[] = [
   'TAG_DELETE',
   'PROFILE_UPDATE',
   'USER_REGISTER',
+  'USER_STATUS_UPDATE',
   'USER_DELETE',
   'AUTH_LOGIN',
   'AUTH_LOGOUT',
@@ -129,6 +133,7 @@ function getActionText(
       TAG_DELETE: 'Tag silindi',
       PROFILE_UPDATE: 'Profil güncellendi',
       USER_REGISTER: 'Kullanıcı kayıt oldu',
+      USER_STATUS_UPDATE: 'Kullanıcı durumu güncellendi',
       USER_DELETE: 'Kullanıcı silindi',
       AUTH_LOGIN: 'Giriş yapıldı',
       AUTH_LOGOUT: 'Çıkış yapıldı',
@@ -383,19 +388,15 @@ export function ActivityLogsPage({
 
   return (
     <main className="activity-page">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">
-            İzleme
-          </span>
-          <h1>Aktiviteler</h1>
-          <p>
-            {currentUserRole === 'admin'
-              ? 'Tüm kullanıcı hareketlerini filtreleyip inceleyin.'
-              : 'Hesabınıza ait hareketleri filtreleyip inceleyin.'}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        section="İzleme"
+        title="Aktiviteler"
+        description={
+          currentUserRole === 'admin'
+            ? 'Tüm kullanıcı hareketlerini filtreleyip inceleyin.'
+            : 'Hesabınıza ait hareketleri filtreleyip inceleyin.'
+        }
+      />
 
       <Card
         className="management-card"

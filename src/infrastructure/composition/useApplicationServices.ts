@@ -66,6 +66,9 @@ import {
   UpdateUserProfileUseCase,
 } from '../../application/usecases/UpdateUserProfileUseCase'
 import {
+  UpdateUserActiveUseCase,
+} from '../../application/usecases/UpdateUserActiveUseCase'
+import {
   AuthenticatedHttpClient,
 } from '../http/AuthenticatedHttpClient'
 import {
@@ -157,6 +160,7 @@ export interface ApplicationServices {
   updateUserProfileUseCase: UpdateUserProfileUseCase
   getUsersUseCase: GetUsersUseCase
   deleteUserUseCase: DeleteUserUseCase
+  updateUserActiveUseCase: UpdateUserActiveUseCase
   getCurrentUserUseCase: GetCurrentUserUseCase
   getActivityLogsUseCase: GetActivityLogsUseCase
   getOwnAnalyticsUseCase: GetOwnAnalyticsUseCase
@@ -271,6 +275,11 @@ export function useApplicationServices(
 
         deleteUserUseCase:
           new DeleteUserUseCase(
+            userRepository,
+          ),
+
+        updateUserActiveUseCase:
+          new UpdateUserActiveUseCase(
             userRepository,
           ),
 

@@ -37,9 +37,6 @@ import {
   ProfilePage,
 } from '../pages/ProfilePage'
 import {
-  TagsPage,
-} from '../pages/TagsPage'
-import {
   UserProfilePage,
 } from '../pages/UserProfilePage'
 import {
@@ -171,6 +168,12 @@ export function AppRoutes({
           getTagsUseCase={
             services.getTagsUseCase
           }
+          createTagUseCase={
+            services.createTagUseCase
+          }
+          deleteTagUseCase={
+            services.deleteTagUseCase
+          }
         />
       )
 
@@ -296,16 +299,9 @@ export function AppRoutes({
           path="/tags"
           element={
             <AdminOnly role={currentUserRole}>
-              <TagsPage
-                getTagsUseCase={
-                  services.getTagsUseCase
-                }
-                createTagUseCase={
-                  services.createTagUseCase
-                }
-                deleteTagUseCase={
-                  services.deleteTagUseCase
-                }
+              <Navigate
+                to="/products"
+                replace
               />
             </AdminOnly>
           }
@@ -321,6 +317,9 @@ export function AppRoutes({
                 }
                 deleteUserUseCase={
                   services.deleteUserUseCase
+                }
+                updateUserActiveUseCase={
+                  services.updateUserActiveUseCase
                 }
               />
             </AdminOnly>

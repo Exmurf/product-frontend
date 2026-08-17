@@ -14,6 +14,8 @@ export interface UserQuery {
   role?: AdminUserRole
 
   isActive?: boolean
+
+  isDeleted?: boolean
 }
 
 
@@ -37,5 +39,10 @@ export interface UserRepository {
 
   delete(
     publicId: string,
+  ): Promise<AdminUser>
+
+  updateActive(
+    publicId: string,
+    isActive: boolean,
   ): Promise<AdminUser>
 }

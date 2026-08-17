@@ -5,7 +5,7 @@ import {
 
 import {
   useTagOptions,
-} from '../context/TagOptionsContext'
+} from '../context/useTagOptions'
 
 
 interface TagSelectorProps {

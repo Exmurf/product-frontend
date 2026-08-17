@@ -14,6 +14,7 @@ import {
   Card,
   Descriptions,
   Drawer,
+  Select,
   Table,
   type TableColumnsType,
 } from 'antd'
@@ -42,6 +43,9 @@ import type {
 import type {
   AnalyticsQuery,
 } from '../../domain/repositories/AnalyticsRepository'
+import {
+  PageHeader,
+} from '../components/PageHeader'
 
 
 interface AnalyticsPageProps {
@@ -315,40 +319,40 @@ export function AnalyticsPage({
         title: 'Kullanıcı',
         dataIndex: 'email',
         key: 'email',
-        width: 260,
+        width: 250,
       },
       {
-        title: 'Toplam ürün',
+        title: 'Ürün',
         dataIndex: 'totalProducts',
         key: 'totalProducts',
-        width: 130,
+        width: 100,
+        align: 'center',
       },
       {
-        title: 'Toplam tag',
+        title: 'Tag',
         dataIndex: 'totalTags',
         key: 'totalTags',
-        width: 120,
+        width: 90,
+        align: 'center',
       },
       {
         title: 'Günlük ortalama',
         dataIndex: 'averageProductsPerDay',
         key: 'averageProductsPerDay',
         width: 150,
+        align: 'center',
         render: formatAverage,
       },
       {
-        title: 'Başlangıç',
-        dataIndex: 'startDate',
-        key: 'startDate',
-        width: 180,
-        render: formatDateTime,
-      },
-      {
-        title: 'Bitiş',
-        dataIndex: 'endDate',
-        key: 'endDate',
-        width: 180,
-        render: formatDateTime,
+        title: 'Analiz dönemi',
+        key: 'period',
+        width: 250,
+        render: (_, item) => (
+          <div className="analytics-period-cell">
+            <span>{formatDateTime(item.startDate)}</span>
+            <span>{formatDateTime(item.endDate)}</span>
+          </div>
+        ),
       },
       {
         title: 'İşlem',
@@ -372,162 +376,142 @@ export function AnalyticsPage({
 
   return (
     <main className="analytics-page">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">
-            Raporlama
-          </span>
-          <h1>Analitik</h1>
-          <p>
-            Kullanıcı ve tarih aralığına göre performans verilerini filtreleyin.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        section="Raporlama"
+        title="Analitik"
+        description="Kullanıcı ve tarih aralığına göre performans verilerini filtreleyin."
+      />
 
       <Card
         className="management-card"
         title="Analitik görünümü"
       >
-        {currentUserRole === 'admin' && (
-          <section className="analytics-user-picker">
-          <h2>Kullanıcı filtresi</h2>
-          <div className="analytics-user-search">
-            <label>E-posta ara</label>
-            <input
-              type="text"
-              value={userSearchInput}
-              placeholder="user@example.com"
-              onChange={(event) => {
-                setUserSearchInput(
-                  event.target.value,
-                )
-              }}
-            />
-            <Button
-              disabled={usersLoading}
-              onClick={() => {
-                setUserSearchInput('')
-                setSelectedUserPublicId('')
-              }}
-            >
-              Aramayı temizle
-            </Button>
-          </div>
-          <div className="analytics-user-select">
-            <label>Kullanıcı</label>
-            <select
-              value={selectedUserPublicId}
-              disabled={usersLoading}
-              onChange={(event) => {
-                setSelectedUserPublicId(
-                  event.target.value,
-                )
-              }}
-            >
-              <option value="">
-                Kendi hesabım ({currentUserEmail})
-              </option>
-              {userOptions.map((user) => (
-                <option
-                  key={user.publicId}
-                  value={user.publicId}
-                >
-                  {user.email} — {user.role}
-                  {!user.isActive ? ' — Pasif' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          {usersError !== '' && (
-            <Alert
-              showIcon
-              type="error"
-              message={usersError}
-            />
+        <div className={
+          currentUserRole === 'admin'
+            ? 'table-filters analytics-table-filters has-user-filter'
+            : 'table-filters analytics-table-filters'
+        }>
+          {currentUserRole === 'admin' && (
+            <div>
+              <label>Kullanıcı</label>
+              <Select
+                showSearch
+                allowClear
+                value={
+                  selectedUserPublicId === ''
+                    ? undefined
+                    : selectedUserPublicId
+                }
+                placeholder={`Kendi hesabım (${currentUserEmail})`}
+                loading={usersLoading}
+                filterOption={false}
+                notFoundContent={
+                  usersLoading
+                    ? 'Kullanıcılar yükleniyor...'
+                    : 'Kullanıcı bulunamadı'
+                }
+                options={userOptions.map((user) => ({
+                  value: user.publicId,
+                  label: `${user.email} — ${user.role}${
+                    user.isActive ? '' : ' — Pasif'
+                  }`,
+                }))}
+                onSearch={setUserSearchInput}
+                onChange={(value) => {
+                  setSelectedUserPublicId(value ?? '')
+                }}
+                onClear={() => {
+                  setUserSearchInput('')
+                }}
+              />
+            </div>
           )}
-          </section>
+          <div>
+            <label>Başlangıç tarihi</label>
+            <input
+              type="date"
+              value={startDateInput}
+              onChange={(event) => {
+                setStartDateInput(event.target.value)
+              }}
+            />
+          </div>
+          <div>
+            <label>Başlangıç saati</label>
+            <input
+              type="time"
+              value={startTimeInput}
+              onChange={(event) => {
+                setStartTimeInput(event.target.value)
+              }}
+            />
+          </div>
+          <div>
+            <label>Bitiş tarihi</label>
+            <input
+              type="date"
+              value={endDateInput}
+              onChange={(event) => {
+                setEndDateInput(event.target.value)
+              }}
+            />
+          </div>
+          <div>
+            <label>Bitiş saati</label>
+            <input
+              type="time"
+              value={endTimeInput}
+              onChange={(event) => {
+                setEndTimeInput(event.target.value)
+              }}
+            />
+          </div>
+          <Button
+            icon={<ClearOutlined />}
+            disabled={
+              startDateInput === '' &&
+              startTimeInput === '' &&
+              endDateInput === '' &&
+              endTimeInput === '' &&
+              selectedUserPublicId === ''
+            }
+            onClick={handleClearFilters}
+          >
+            Filtreleri temizle
+          </Button>
+        </div>
+
+        {usersError !== '' && (
+          <Alert
+            showIcon
+            type="error"
+            message={usersError}
+          />
+        )}
+        {error !== '' && (
+          <Alert
+            showIcon
+            type="error"
+            message={error}
+          />
         )}
 
-      <div className="table-filters analytics-table-filters">
-        <div>
-          <label>Başlangıç tarihi</label>
-          <input
-            type="date"
-            value={startDateInput}
-            onChange={(event) => {
-              setStartDateInput(event.target.value)
-            }}
-          />
-        </div>
-        <div>
-          <label>Başlangıç saati</label>
-          <input
-            type="time"
-            value={startTimeInput}
-            onChange={(event) => {
-              setStartTimeInput(event.target.value)
-            }}
-          />
-        </div>
-        <div>
-          <label>Bitiş tarihi</label>
-          <input
-            type="date"
-            value={endDateInput}
-            onChange={(event) => {
-              setEndDateInput(event.target.value)
-            }}
-          />
-        </div>
-        <div>
-          <label>Bitiş saati</label>
-          <input
-            type="time"
-            value={endTimeInput}
-            onChange={(event) => {
-              setEndTimeInput(event.target.value)
-            }}
-          />
-        </div>
-        <Button
-          icon={<ClearOutlined />}
-          disabled={
-            startDateInput === '' &&
-            startTimeInput === '' &&
-            endDateInput === '' &&
-            endTimeInput === '' &&
-            selectedUserPublicId === ''
+        <Table<UserAnalytics>
+          className="data-table analytics-table"
+          rowKey="userPublicId"
+          columns={columns}
+          dataSource={
+            analytics === null
+              ? []
+              : [analytics]
           }
-          onClick={handleClearFilters}
-        >
-          Filtreleri temizle
-        </Button>
-      </div>
-
-      {error !== '' && (
-        <Alert
-          showIcon
-          type="error"
-          message={error}
+          loading={loading}
+          scroll={{ x: 950 }}
+          pagination={false}
+          locale={{
+            emptyText: 'Analitik verisi bulunamadı',
+          }}
         />
-      )}
-
-      <Table<UserAnalytics>
-        className="data-table"
-        rowKey="userPublicId"
-        columns={columns}
-        dataSource={
-          analytics === null
-            ? []
-            : [analytics]
-        }
-        loading={loading}
-        scroll={{ x: 1120 }}
-        pagination={false}
-        locale={{
-          emptyText: 'Analitik verisi bulunamadı',
-        }}
-      />
       </Card>
 
       <Drawer

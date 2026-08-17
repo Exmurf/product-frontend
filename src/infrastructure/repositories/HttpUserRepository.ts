@@ -23,6 +23,10 @@ interface UserApiItem {
 
   is_active: boolean
 
+  is_deleted: boolean
+
+  deleted_at: string | null
+
   created_at: string | null
 }
 
@@ -135,6 +139,16 @@ export class HttpUserRepository
       )
     }
 
+    if (
+      query.isDeleted !==
+      undefined
+    ) {
+      params.set(
+        'is_deleted',
+        String(query.isDeleted),
+      )
+    }
+
     const response =
       await this.httpClient.request(
         `/users?${params.toString()}`,
@@ -241,6 +255,54 @@ export class HttpUserRepository
     )
   }
 
+  async updateActive(
+    publicId: string,
+    isActive: boolean,
+  ): Promise<AdminUser> {
+    const response =
+      await this.httpClient.request(
+        `/users/${encodeURIComponent(publicId)}/active`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            is_active: isActive,
+          }),
+        },
+      )
+
+    let responseBody:
+      UserItemApiResponse | null =
+      null
+
+    try {
+      responseBody =
+        await response.json()
+    } catch {
+      responseBody = null
+    }
+
+    if (
+      !response.ok ||
+      responseBody === null ||
+      !responseBody.status ||
+      !responseBody.data
+    ) {
+      throw new Error(
+        this.getErrorMessage(
+          response.status,
+          responseBody,
+        ),
+      )
+    }
+
+    return this.mapUser(
+      responseBody.data,
+    )
+  }
+
   private mapUser(
     user: UserApiItem,
   ): AdminUser {
@@ -256,6 +318,12 @@ export class HttpUserRepository
 
       isActive:
         user.is_active,
+
+      isDeleted:
+        user.is_deleted,
+
+      deletedAt:
+        user.deleted_at,
 
       createdAt:
         user.created_at,
