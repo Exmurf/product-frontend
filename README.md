@@ -71,6 +71,26 @@ Preview the production build locally:
 npm run preview
 ```
 
+## Docker
+
+The frontend includes a multi-stage Docker build. Vite builds the application
+and Nginx serves the static files while proxying `/api` requests to the FastAPI
+container.
+
+The complete frontend, backend, and Redis stack is managed by the backend
+project's `docker-compose.yml`. With both project directories next to each
+other, run this from the backend directory:
+
+```bash
+docker compose up -d --build
+```
+
+Open the containerized frontend at:
+
+```text
+http://localhost:5173
+```
+
 ## Lint
 
 Run the linter:
