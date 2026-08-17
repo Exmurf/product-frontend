@@ -5,6 +5,7 @@ import {
 } from 'react'
 
 import {
+  ClearOutlined,
   DeleteOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -12,6 +13,7 @@ import {
 import {
   Alert,
   Button,
+  Card,
   Input,
   Popconfirm,
   Table,
@@ -158,7 +160,7 @@ export function AdminTagManagement({
       {
         title: 'İşlem',
         key: 'actions',
-        align: 'right',
+        align: 'center',
         width: 120,
         render: (_, tag) => {
           return (
@@ -191,16 +193,10 @@ export function AdminTagManagement({
     ]
 
   return (
-    <section className="data-table-section">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">
-            Yönetim
-          </span>
-          <h2>Tagler</h2>
-        </div>
-      </div>
-
+    <Card
+      className="management-card"
+      title="Tag listesi"
+    >
       <form
         className="inline-create-form"
         onSubmit={handleSubmit}
@@ -235,6 +231,15 @@ export function AdminTagManagement({
             setSearch(event.target.value)
           }}
         />
+        <Button
+          icon={<ClearOutlined />}
+          disabled={search === ''}
+          onClick={() => {
+            setSearch('')
+          }}
+        >
+          Filtreleri temizle
+        </Button>
       </div>
 
       {message !== '' && (
@@ -271,6 +276,6 @@ export function AdminTagManagement({
           emptyText: 'Tag bulunamadı',
         }}
       />
-    </section>
+    </Card>
   )
 }

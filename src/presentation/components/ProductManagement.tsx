@@ -51,6 +51,7 @@ import {
 import {
   Button,
   Card,
+  Drawer,
 } from 'antd'
 
 
@@ -194,24 +195,56 @@ export function ProductManagement({
       }
     >
       <div className="product-management">
-        {!showCreateForm && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            className="create-product-trigger"
-            onClick={() => {
-              setShowCreateForm(
-                true,
-              )
-            }}
-          >
-            Yeni ürün ekle
-          </Button>
-        )}
+        <Card
+          className="management-card product-management-card"
+          title="Ürün listesi"
+          extra={(
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setShowCreateForm(true)
+              }}
+            >
+              Yeni ürün ekle
+            </Button>
+          )}
+        >
+          <ProductList
+            getProductsUseCase={
+              getProductsUseCase
+            }
+            getProductByIdUseCase={
+              getProductByIdUseCase
+            }
+            updateProductUseCase={
+              updateProductUseCase
+            }
+            deleteProductUseCase={
+              deleteProductUseCase
+            }
+            authVersion={
+              authVersion
+            }
+            productVersion={
+              productVersion
+            }
+            onProductsChanged={
+              handleProductsChanged
+            }
+          />
+        </Card>
 
-        {showCreateForm && (
-          <Card className="create-product-card">
+        <Drawer
+          title="Yeni ürün ekle"
+          width={680}
+          open={showCreateForm}
+          destroyOnHidden
+          onClose={() => {
+            setShowCreateForm(false)
+          }}
+        >
+          {showCreateForm && (
             <CreateProductForm
               createProductUseCase={
                 createProductUseCase
@@ -225,32 +258,8 @@ export function ProductManagement({
                 )
               }}
             />
-          </Card>
-        )}
-
-        <ProductList
-          getProductsUseCase={
-            getProductsUseCase
-          }
-          getProductByIdUseCase={
-            getProductByIdUseCase
-          }
-          updateProductUseCase={
-            updateProductUseCase
-          }
-          deleteProductUseCase={
-            deleteProductUseCase
-          }
-          authVersion={
-            authVersion
-          }
-          productVersion={
-            productVersion
-          }
-          onProductsChanged={
-            handleProductsChanged
-          }
-        />
+          )}
+        </Drawer>
       </div>
     </TagOptionsProvider>
   )

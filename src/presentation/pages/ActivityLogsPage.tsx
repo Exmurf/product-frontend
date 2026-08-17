@@ -2,16 +2,16 @@ import {
   useCallback,
   useEffect,
   useState,
-  type FormEvent,
 } from 'react'
 
 import {
+  ClearOutlined,
   EyeOutlined,
-  SearchOutlined,
 } from '@ant-design/icons'
 import {
   Alert,
   Button,
+  Card,
   Descriptions,
   Drawer,
   Table,
@@ -56,6 +56,8 @@ const actions: ActivityAction[] = [
   'AUTH_LOGIN',
   'AUTH_LOGOUT',
 ]
+
+const filterDebounceMs = 400
 
 
 function parseAction(
@@ -232,42 +234,67 @@ export function ActivityLogsPage({
     loadLogs()
   }, [loadLogs])
 
-  function handleFilterSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
-    const userPublicId =
-      userPublicIdInput.trim()
-    const entityId =
-      entityIdInput.trim()
-
-    if (currentUserRole === 'admin') {
-      setSearchParams(
-        userPublicId === ''
-          ? {}
-          : {
-              user_public_id: userPublicId,
-            },
-      )
-    }
-
-    setQuery((current) => ({
-      ...current,
-      page: 1,
-      userPublicId:
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const normalizedUserPublicId =
+        userPublicIdInput.trim()
+      const normalizedEntityId =
+        entityIdInput.trim()
+      const userPublicId =
         currentUserRole === 'admin' &&
-        userPublicId !== ''
-          ? userPublicId
-          : undefined,
-      action: parseAction(actionInput),
-      entityType:
-        parseEntityType(entityTypeInput),
-      entityId:
-        entityId === ''
+        normalizedUserPublicId !== ''
+          ? normalizedUserPublicId
+          : undefined
+      const action = parseAction(actionInput)
+      const entityType =
+        parseEntityType(entityTypeInput)
+      const entityId =
+        normalizedEntityId === ''
           ? undefined
-          : entityId,
-    }))
-  }
+          : normalizedEntityId
+
+      if (currentUserRole === 'admin') {
+        setSearchParams(
+          userPublicId === undefined
+            ? {}
+            : {
+                user_public_id: userPublicId,
+              },
+        )
+      }
+
+      setQuery((current) => {
+        if (
+          current.userPublicId === userPublicId &&
+          current.action === action &&
+          current.entityType === entityType &&
+          current.entityId === entityId
+        ) {
+          return current
+        }
+
+        return {
+          ...current,
+          page: 1,
+          userPublicId,
+          action,
+          entityType,
+          entityId,
+        }
+      })
+    }, filterDebounceMs)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [
+    currentUserRole,
+    userPublicIdInput,
+    actionInput,
+    entityTypeInput,
+    entityIdInput,
+    setSearchParams,
+  ])
 
   function handleClearFilters() {
     setUserPublicIdInput('')
@@ -338,7 +365,7 @@ export function ActivityLogsPage({
         title: 'İşlem',
         key: 'detail',
         fixed: 'right',
-        align: 'right',
+        align: 'center',
         width: 110,
         render: (_, log) => (
           <Button
@@ -370,10 +397,11 @@ export function ActivityLogsPage({
         </div>
       </div>
 
-      <form
-        className="table-filters activity-table-filters"
-        onSubmit={handleFilterSubmit}
+      <Card
+        className="management-card"
+        title="Aktivite listesi"
       >
+      <div className="table-filters activity-table-filters">
         {currentUserRole === 'admin' && (
           <div>
             <label>Kullanıcı UUID</label>
@@ -437,16 +465,18 @@ export function ActivityLogsPage({
           />
         </div>
         <Button
-          type="primary"
-          htmlType="submit"
-          icon={<SearchOutlined />}
+          icon={<ClearOutlined />}
+          disabled={
+            userPublicIdInput === '' &&
+            actionInput === '' &&
+            entityTypeInput === '' &&
+            entityIdInput === ''
+          }
+          onClick={handleClearFilters}
         >
-          Filtrele
+          Filtreleri temizle
         </Button>
-        <Button onClick={handleClearFilters}>
-          Temizle
-        </Button>
-      </form>
+      </div>
 
       {error !== '' && (
         <Alert
@@ -487,6 +517,7 @@ export function ActivityLogsPage({
           },
         }}
       />
+      </Card>
 
       <Drawer
         title="Aktivite detayı"

@@ -167,20 +167,25 @@ export function EditProductForm({
   }
 
   return (
-    <div>
-      <h4>
-        Ürünü Düzenle
-      </h4>
-
+    <div className="product-edit-form">
+      <p className="form-intro">
+        Ürün bilgilerini güncelleyin. Yıldızlı alanlar zorunludur.
+      </p>
       <form
         onSubmit={handleSubmit}
       >
         <div>
+          <label htmlFor="edit-product-name">
+            Ürün adı *
+          </label>
           <input
+            id="edit-product-name"
             type="text"
             value={name}
+            placeholder="Ürün adı"
             maxLength={100}
             required
+            disabled={loading}
             onChange={(event) => {
               setName(
                 event.target.value,
@@ -190,12 +195,18 @@ export function EditProductForm({
         </div>
 
         <div>
+          <label htmlFor="edit-product-price">
+            Fiyat *
+          </label>
           <input
+            id="edit-product-price"
             type="number"
             value={price}
+            placeholder="0,00"
             min="0"
             step="0.01"
             required
+            disabled={loading}
             onChange={(event) => {
               setPrice(
                 event.target.value,
@@ -205,12 +216,18 @@ export function EditProductForm({
         </div>
 
         <div>
+          <label htmlFor="edit-product-stock">
+            Stok *
+          </label>
           <input
+            id="edit-product-stock"
             type="number"
             value={stock}
+            placeholder="0"
             min="0"
             step="1"
             required
+            disabled={loading}
             onChange={(event) => {
               setStock(
                 event.target.value,
@@ -232,10 +249,15 @@ export function EditProductForm({
         />
 
         <div>
+          <label htmlFor="edit-product-description">
+            Açıklama
+          </label>
           <textarea
+            id="edit-product-description"
             value={description}
-            placeholder="Açıklama"
+            placeholder="Ürün açıklaması"
             maxLength={1000}
+            disabled={loading}
             onChange={(event) => {
               setDescription(
                 event.target.value,
@@ -245,11 +267,16 @@ export function EditProductForm({
         </div>
 
         <div>
+          <label htmlFor="edit-product-brand">
+            Marka
+          </label>
           <input
+            id="edit-product-brand"
             type="text"
             value={brand}
-            placeholder="Marka"
+            placeholder="Ürün markası"
             maxLength={100}
+            disabled={loading}
             onChange={(event) => {
               setBrand(
                 event.target.value,
@@ -259,20 +286,32 @@ export function EditProductForm({
         </div>
 
         <div>
+          <label htmlFor="edit-product-warranty">
+            Garanti süresi (ay)
+          </label>
           <input
+            id="edit-product-warranty"
             type="number"
             value={
               warrantyMonths
             }
             min="0"
             step="1"
-            placeholder="Garanti ay"
+            placeholder="Örn. 24"
+            aria-describedby="edit-product-warranty-help"
+            disabled={loading}
             onChange={(event) => {
               setWarrantyMonths(
                 event.target.value,
               )
             }}
           />
+          <small
+            id="edit-product-warranty-help"
+            className="field-help"
+          >
+            Boş bırakırsanız ürün “Garantisi yok” olarak gösterilir.
+          </small>
         </div>
 
         <br />

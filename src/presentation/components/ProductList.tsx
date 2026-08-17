@@ -3,13 +3,14 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
 } from 'react'
 
 import {
+  ClearOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  MoreOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
 import {
@@ -17,10 +18,14 @@ import {
   Button,
   Descriptions,
   Drawer,
-  Popconfirm,
+  Dropdown,
+  Input,
+  InputNumber,
+  Modal,
   Space,
   Table,
   Tag,
+  type MenuProps,
   type TableColumnsType,
   type TableProps,
 } from 'antd'
@@ -69,6 +74,8 @@ const initialQuery: ProductQuery = {
   sortBy: 'id',
   sortOrder: 'asc',
 }
+
+const filterDebounceMs = 400
 
 
 function getOwnerName(
@@ -124,6 +131,8 @@ export function ProductList({
   onProductsChanged,
 }: ProductListProps) {
   const navigate = useNavigate()
+  const [modal, modalContextHolder] =
+    Modal.useModal()
   const [products, setProducts] =
     useState<Product[]>([])
   const [query, setQuery] =
@@ -151,6 +160,8 @@ export function ProductList({
   const [deletingPublicId, setDeletingPublicId] =
     useState<string | null>(null)
   const [actionMessage, setActionMessage] =
+    useState('')
+  const [filterError, setFilterError] =
     useState('')
 
   const previousProductVersion =
@@ -214,56 +225,83 @@ export function ProductList({
     loadProducts(false)
   }, [productVersion, loadProducts])
 
-  function handleFilterSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
-
-    const minPrice =
-      minPriceInput === ''
-        ? undefined
-        : Number(minPriceInput)
-    const maxPrice =
-      maxPriceInput === ''
-        ? undefined
-        : Number(maxPriceInput)
-    const minStock =
-      minStockInput === ''
-        ? undefined
-        : Number(minStockInput)
-
-    if (
-      minPrice !== undefined &&
-      maxPrice !== undefined &&
-      minPrice > maxPrice
-    ) {
-      setActionMessage(
-        'Minimum fiyat maksimum fiyattan büyük olamaz.',
-      )
-      return
-    }
-
-    setActionMessage('')
-    setQuery((current) => ({
-      ...current,
-      page: 1,
-      search:
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const minPrice =
+        minPriceInput === ''
+          ? undefined
+          : Number(minPriceInput)
+      const maxPrice =
+        maxPriceInput === ''
+          ? undefined
+          : Number(maxPriceInput)
+      const minStock =
+        minStockInput === ''
+          ? undefined
+          : Number(minStockInput)
+      const search =
         searchInput.trim() === ''
           ? undefined
-          : searchInput.trim(),
-      minPrice,
-      maxPrice,
-      minStock,
-    }))
-  }
+          : searchInput.trim()
+
+      if (
+        minPrice !== undefined &&
+        maxPrice !== undefined &&
+        minPrice > maxPrice
+      ) {
+        setFilterError(
+          'Minimum fiyat maksimum fiyattan büyük olamaz.',
+        )
+        return
+      }
+
+      setFilterError('')
+      setQuery((current) => {
+        if (
+          current.search === search &&
+          current.minPrice === minPrice &&
+          current.maxPrice === maxPrice &&
+          current.minStock === minStock
+        ) {
+          return current
+        }
+
+        return {
+          ...current,
+          page: 1,
+          search,
+          minPrice,
+          maxPrice,
+          minStock,
+        }
+      })
+    }, filterDebounceMs)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [
+    searchInput,
+    minPriceInput,
+    maxPriceInput,
+    minStockInput,
+  ])
 
   function handleClearFilters() {
     setSearchInput('')
     setMinPriceInput('')
     setMaxPriceInput('')
     setMinStockInput('')
+    setFilterError('')
     setActionMessage('')
-    setQuery(initialQuery)
+    setQuery((current) => ({
+      ...current,
+      page: 1,
+      search: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      minStock: undefined,
+    }))
   }
 
   const handleTableChange:
@@ -352,6 +390,60 @@ export function ProductList({
       )
     } finally {
       setDeletingPublicId(null)
+    }
+  }
+
+  function getActionMenu(
+    product: Product,
+  ): MenuProps {
+    return {
+      items: [
+        {
+          key: 'detail',
+          icon: <EyeOutlined />,
+          label: 'Detay',
+        },
+        {
+          key: 'edit',
+          icon: <EditOutlined />,
+          label: 'Düzenle',
+        },
+        {
+          type: 'divider',
+        },
+        {
+          key: 'delete',
+          danger: true,
+          icon: <DeleteOutlined />,
+          label: 'Sil',
+        },
+      ],
+      onClick: ({ key }) => {
+        if (key === 'detail') {
+          handleDetail(product.publicId)
+          return
+        }
+
+        if (key === 'edit') {
+          setEditingPublicId(product.publicId)
+          return
+        }
+
+        if (key === 'delete') {
+          modal.confirm({
+            title: 'Ürün silinsin mi?',
+            content: `${product.name} kalıcı olarak silinecek.`,
+            okText: 'Sil',
+            cancelText: 'Vazgeç',
+            okButtonProps: {
+              danger: true,
+            },
+            onOk: () => {
+              return handleDelete(product)
+            },
+          })
+        }
+      },
     }
   }
 
@@ -457,57 +549,26 @@ export function ProductList({
         title: 'İşlemler',
         key: 'actions',
         fixed: 'right',
-        align: 'right',
-        width: 250,
+        align: 'center',
+        width: 140,
         render: (_, product) => (
-          <Space wrap>
+          <Dropdown
+            trigger={['click']}
+            placement="bottomRight"
+            menu={getActionMenu(product)}
+          >
             <Button
-              type="link"
-              icon={<EyeOutlined />}
+              icon={<MoreOutlined />}
               loading={
                 detailLoadingId ===
-                product.publicId
-              }
-              onClick={() => {
-                handleDetail(product.publicId)
-              }}
-            >
-              Detay
-            </Button>
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditingPublicId(
-                  product.publicId,
-                )
-              }}
-            >
-              Düzenle
-            </Button>
-            <Popconfirm
-              title="Ürün silinsin mi?"
-              description={`${product.name} kalıcı olarak silinecek.`}
-              okText="Sil"
-              cancelText="Vazgeç"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => {
-                return handleDelete(product)
-              }}
-            >
-              <Button
-                danger
-                type="link"
-                icon={<DeleteOutlined />}
-                loading={
-                  deletingPublicId ===
+                  product.publicId ||
+                deletingPublicId ===
                   product.publicId
-                }
-              >
-                Sil
-              </Button>
-            </Popconfirm>
-          </Space>
+              }
+            >
+              İşlemler
+            </Button>
+          </Dropdown>
         ),
       },
     ]
@@ -520,26 +581,15 @@ export function ProductList({
 
   return (
     <div className="product-list">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">
-            Katalog görünümü
-          </span>
-          <h2>Ürün listesi</h2>
-        </div>
-        <span className="result-count">
-          {totalItems} kayıt
-        </span>
-      </div>
-
-      <form
+      {modalContextHolder}
+      <div
         className="table-filters product-table-filters"
-        onSubmit={handleFilterSubmit}
       >
         <div>
           <label>Ürün ara</label>
-          <input
-            type="text"
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
             placeholder="Ürün adı"
             value={searchInput}
             onChange={(event) => {
@@ -549,51 +599,88 @@ export function ProductList({
         </div>
         <div>
           <label>Minimum fiyat</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={minPriceInput}
-            onChange={(event) => {
-              setMinPriceInput(event.target.value)
+          <InputNumber
+            min={0}
+            precision={2}
+            controls={false}
+            placeholder="0,00"
+            value={
+              minPriceInput === ''
+                ? null
+                : Number(minPriceInput)
+            }
+            onChange={(value) => {
+              setMinPriceInput(
+                value === null
+                  ? ''
+                  : String(value),
+              )
             }}
           />
         </div>
         <div>
           <label>Maksimum fiyat</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={maxPriceInput}
-            onChange={(event) => {
-              setMaxPriceInput(event.target.value)
+          <InputNumber
+            min={0}
+            precision={2}
+            controls={false}
+            placeholder="0,00"
+            value={
+              maxPriceInput === ''
+                ? null
+                : Number(maxPriceInput)
+            }
+            onChange={(value) => {
+              setMaxPriceInput(
+                value === null
+                  ? ''
+                  : String(value),
+              )
             }}
           />
         </div>
         <div>
           <label>Minimum stok</label>
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={minStockInput}
-            onChange={(event) => {
-              setMinStockInput(event.target.value)
+          <InputNumber
+            min={0}
+            precision={0}
+            controls={false}
+            placeholder="0"
+            value={
+              minStockInput === ''
+                ? null
+                : Number(minStockInput)
+            }
+            onChange={(value) => {
+              setMinStockInput(
+                value === null
+                  ? ''
+                  : String(value),
+              )
             }}
           />
         </div>
         <Button
-          type="primary"
-          htmlType="submit"
-          icon={<SearchOutlined />}
+          icon={<ClearOutlined />}
+          disabled={
+            searchInput === '' &&
+            minPriceInput === '' &&
+            maxPriceInput === '' &&
+            minStockInput === ''
+          }
+          onClick={handleClearFilters}
         >
-          Filtrele
+          Filtreleri temizle
         </Button>
-        <Button onClick={handleClearFilters}>
-          Temizle
-        </Button>
-      </form>
+      </div>
+
+      {filterError !== '' && (
+        <Alert
+          showIcon
+          type="warning"
+          message={filterError}
+        />
+      )}
 
       {actionMessage !== '' && (
         <Alert

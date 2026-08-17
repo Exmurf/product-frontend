@@ -2,23 +2,26 @@ import {
   useCallback,
   useEffect,
   useState,
-  type FormEvent,
 } from 'react'
 
 import {
+  ClearOutlined,
   DeleteOutlined,
   EyeOutlined,
-  SearchOutlined,
+  MoreOutlined,
 } from '@ant-design/icons'
 import {
   Alert,
   Button,
+  Card,
   Descriptions,
   Drawer,
-  Popconfirm,
+  Dropdown,
+  Modal,
   Space,
   Table,
   Tag,
+  type MenuProps,
   type TableColumnsType,
 } from 'antd'
 import {
@@ -50,6 +53,8 @@ const initialQuery: UserQuery = {
   page: 1,
   pageSize: 20,
 }
+
+const filterDebounceMs = 400
 
 
 function parseRole(
@@ -92,6 +97,8 @@ export function UsersPage({
   deleteUserUseCase,
 }: UsersPageProps) {
   const navigate = useNavigate()
+  const [modal, modalContextHolder] =
+    Modal.useModal()
   const [users, setUsers] =
     useState<AdminUser[]>([])
   const [query, setQuery] =
@@ -147,29 +154,48 @@ export function UsersPage({
     loadUsers()
   }, [loadUsers])
 
-  function handleFilterSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
-    setActionMessage('')
-    setQuery((current) => ({
-      ...current,
-      page: 1,
-      search:
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const search =
         searchInput.trim() === ''
           ? undefined
-          : searchInput.trim(),
-      role: parseRole(roleInput),
-      isActive: parseActive(activeInput),
-    }))
-  }
+          : searchInput.trim()
+      const role = parseRole(roleInput)
+      const isActive = parseActive(activeInput)
+
+      setQuery((current) => {
+        if (
+          current.search === search &&
+          current.role === role &&
+          current.isActive === isActive
+        ) {
+          return current
+        }
+
+        return {
+          ...current,
+          page: 1,
+          search,
+          role,
+          isActive,
+        }
+      })
+    }, filterDebounceMs)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [searchInput, roleInput, activeInput])
 
   function handleClearFilters() {
     setSearchInput('')
     setRoleInput('')
     setActiveInput('')
     setActionMessage('')
-    setQuery(initialQuery)
+    setQuery((current) => ({
+      page: 1,
+      pageSize: current.pageSize,
+    }))
   }
 
   async function handleDeleteUser(
@@ -195,6 +221,51 @@ export function UsersPage({
       )
     } finally {
       setDeletingPublicId(null)
+    }
+  }
+
+  function getActionMenu(
+    user: AdminUser,
+  ): MenuProps {
+    return {
+      items: [
+        {
+          key: 'detail',
+          icon: <EyeOutlined />,
+          label: 'Detay',
+        },
+        {
+          type: 'divider',
+        },
+        {
+          key: 'delete',
+          danger: true,
+          disabled: !user.isActive,
+          icon: <DeleteOutlined />,
+          label: 'Sil',
+        },
+      ],
+      onClick: ({ key }) => {
+        if (key === 'detail') {
+          setSelectedUser(user)
+          return
+        }
+
+        if (key === 'delete') {
+          modal.confirm({
+            title: 'Kullanıcı pasifleştirilsin mi?',
+            content: user.email,
+            okText: 'Sil',
+            cancelText: 'Vazgeç',
+            okButtonProps: {
+              danger: true,
+            },
+            onOk: () => {
+              return handleDeleteUser(user)
+            },
+          })
+        }
+      },
     }
   }
 
@@ -249,50 +320,31 @@ export function UsersPage({
         title: 'İşlemler',
         key: 'actions',
         fixed: 'right',
-        align: 'right',
-        width: 180,
+        align: 'center',
+        width: 140,
         render: (_, user) => (
-          <Space>
+          <Dropdown
+            trigger={['click']}
+            placement="bottomRight"
+            menu={getActionMenu(user)}
+          >
             <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => {
-                setSelectedUser(user)
-              }}
-            >
-              Detay
-            </Button>
-            <Popconfirm
-              title="Kullanıcı pasifleştirilsin mi?"
-              description={user.email}
-              okText="Sil"
-              cancelText="Vazgeç"
-              okButtonProps={{ danger: true }}
-              disabled={!user.isActive}
-              onConfirm={() => {
-                return handleDeleteUser(user)
-              }}
-            >
-              <Button
-                danger
-                type="link"
-                icon={<DeleteOutlined />}
-                disabled={!user.isActive}
-                loading={
-                  deletingPublicId ===
+              icon={<MoreOutlined />}
+              loading={
+                deletingPublicId ===
                   user.publicId
-                }
-              >
-                Sil
-              </Button>
-            </Popconfirm>
-          </Space>
+              }
+            >
+              İşlemler
+            </Button>
+          </Dropdown>
         ),
       },
     ]
 
   return (
     <main className="users-page">
+      {modalContextHolder}
       <div className="page-heading">
         <div>
           <span className="eyebrow">
@@ -305,103 +357,106 @@ export function UsersPage({
         </div>
       </div>
 
-      <form
-        className="table-filters users-table-filters"
-        onSubmit={handleFilterSubmit}
+      <Card
+        className="management-card"
+        title="Kullanıcı listesi"
       >
-        <div>
-          <label>E-posta ara</label>
-          <input
-            type="text"
-            maxLength={255}
-            placeholder="user@example.com"
-            value={searchInput}
-            onChange={(event) => {
-              setSearchInput(event.target.value)
-            }}
+        <div className="table-filters users-table-filters">
+          <div>
+            <label>E-posta ara</label>
+            <input
+              type="text"
+              maxLength={255}
+              placeholder="user@example.com"
+              value={searchInput}
+              onChange={(event) => {
+                setSearchInput(event.target.value)
+              }}
+            />
+          </div>
+          <div>
+            <label>Rol</label>
+            <select
+              value={roleInput}
+              onChange={(event) => {
+                setRoleInput(event.target.value)
+              }}
+            >
+              <option value="">Tümü</option>
+              <option value="user">Kullanıcı</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div>
+            <label>Durum</label>
+            <select
+              value={activeInput}
+              onChange={(event) => {
+                setActiveInput(event.target.value)
+              }}
+            >
+              <option value="">Tümü</option>
+              <option value="true">Aktif</option>
+              <option value="false">Pasif</option>
+            </select>
+          </div>
+          <Button
+            icon={<ClearOutlined />}
+            disabled={
+              searchInput === '' &&
+              roleInput === '' &&
+              activeInput === ''
+            }
+            onClick={handleClearFilters}
+          >
+            Filtreleri temizle
+          </Button>
+        </div>
+
+        {actionMessage !== '' && (
+          <Alert
+            showIcon
+            type="info"
+            message={actionMessage}
           />
-        </div>
-        <div>
-          <label>Rol</label>
-          <select
-            value={roleInput}
-            onChange={(event) => {
-              setRoleInput(event.target.value)
-            }}
-          >
-            <option value="">Tümü</option>
-            <option value="user">Kullanıcı</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div>
-          <label>Durum</label>
-          <select
-            value={activeInput}
-            onChange={(event) => {
-              setActiveInput(event.target.value)
-            }}
-          >
-            <option value="">Tümü</option>
-            <option value="true">Aktif</option>
-            <option value="false">Pasif</option>
-          </select>
-        </div>
-        <Button
-          type="primary"
-          htmlType="submit"
-          icon={<SearchOutlined />}
-        >
-          Filtrele
-        </Button>
-        <Button onClick={handleClearFilters}>
-          Temizle
-        </Button>
-      </form>
+        )}
+        {error !== '' && (
+          <Alert
+            showIcon
+            type="error"
+            message={error}
+          />
+        )}
 
-      {actionMessage !== '' && (
-        <Alert
-          showIcon
-          type="info"
-          message={actionMessage}
+        <Table<AdminUser>
+          className="data-table"
+          rowKey="publicId"
+          columns={columns}
+          dataSource={users}
+          loading={loading}
+          scroll={{ x: 900 }}
+          locale={{
+            emptyText: 'Kullanıcı bulunamadı',
+          }}
+          pagination={{
+            current: query.page,
+            pageSize: query.pageSize,
+            total: totalItems,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 20, 50, 100],
+            showTotal: (total) => {
+              return `Toplam ${total} kullanıcı`
+            },
+            onChange: (page, pageSize) => {
+              setQuery((current) => ({
+                ...current,
+                page,
+                pageSize,
+              }))
+            },
+          }}
         />
-      )}
-      {error !== '' && (
-        <Alert
-          showIcon
-          type="error"
-          message={error}
-        />
-      )}
-
-      <Table<AdminUser>
-        className="data-table"
-        rowKey="publicId"
-        columns={columns}
-        dataSource={users}
-        loading={loading}
-        scroll={{ x: 900 }}
-        locale={{
-          emptyText: 'Kullanıcı bulunamadı',
-        }}
-        pagination={{
-          current: query.page,
-          pageSize: query.pageSize,
-          total: totalItems,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 20, 50, 100],
-          showTotal: (total) => {
-            return `Toplam ${total} kullanıcı`
-          },
-          onChange: (page, pageSize) => {
-            setQuery((current) => ({
-              ...current,
-              page,
-              pageSize,
-            }))
-          },
-        }}
-      />
+      </Card>
 
       <Drawer
         title="Kullanıcı detayı"

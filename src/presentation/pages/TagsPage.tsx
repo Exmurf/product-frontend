@@ -7,6 +7,12 @@ import {
 import {
   useNavigate,
 } from 'react-router'
+import {
+  ArrowLeftOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+} from 'antd'
 
 import type {
   Tag,
@@ -119,21 +125,26 @@ export function TagsPage({
   ])
 
   return (
-    <main>
-      <button
-        type="button"
-        onClick={() => {
-          navigate(
-            '/products',
-          )
-        }}
-      >
-        ← Ürünlere Dön
-      </button>
-
-      <h1>
-        Tagler
-      </h1>
+    <main className="tags-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">
+            Yönetim
+          </span>
+          <h1>Tagler</h1>
+          <p>
+            Ürünlerde kullanılan tagleri oluşturun, filtreleyin ve yönetin.
+          </p>
+        </div>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => {
+            navigate('/products')
+          }}
+        >
+          Ürünlere dön
+        </Button>
+      </div>
 
       <TagOptionsProvider
         tags={tags}

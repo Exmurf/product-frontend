@@ -2,16 +2,16 @@ import {
   useCallback,
   useEffect,
   useState,
-  type FormEvent,
 } from 'react'
 
 import {
+  ClearOutlined,
   EyeOutlined,
-  SearchOutlined,
 } from '@ant-design/icons'
 import {
   Alert,
   Button,
+  Card,
   Descriptions,
   Drawer,
   Table,
@@ -51,6 +51,8 @@ interface AnalyticsPageProps {
   getUserAnalyticsUseCase: GetUserAnalyticsUseCase
   getUsersUseCase: GetUsersUseCase
 }
+
+const filterDebounceMs = 400
 
 
 function formatDateTime(
@@ -172,10 +174,22 @@ export function AnalyticsPage({
     )
 
   useEffect(() => {
-    if (currentUserRole === 'admin') {
-      loadUserOptions()
+    if (currentUserRole !== 'admin') {
+      return
     }
-  }, [currentUserRole, loadUserOptions])
+
+    const timer = window.setTimeout(() => {
+      loadUserOptions(userSearchInput)
+    }, filterDebounceMs)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [
+    currentUserRole,
+    userSearchInput,
+    loadUserOptions,
+  ])
 
   const loadAnalytics =
     useCallback(
@@ -219,49 +233,67 @@ export function AnalyticsPage({
     loadAnalytics()
   }, [loadAnalytics])
 
-  function handleUserSearch() {
-    loadUserOptions(userSearchInput)
-    setSelectedUserPublicId('')
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (currentUserRole === 'admin') {
+        setTargetUserPublicId(
+          selectedUserPublicId,
+        )
+        setSearchParams(
+          selectedUserPublicId === ''
+            ? {}
+            : {
+                user_public_id:
+                  selectedUserPublicId,
+              },
+        )
+      }
 
-  function handleFilterSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
+      const nextQuery: AnalyticsQuery = {
+        startDate:
+          startDateInput === ''
+            ? undefined
+            : startDateInput,
+        startTime:
+          startTimeInput === ''
+            ? undefined
+            : startTimeInput,
+        endDate:
+          endDateInput === ''
+            ? undefined
+            : endDateInput,
+        endTime:
+          endTimeInput === ''
+            ? undefined
+            : endTimeInput,
+      }
 
-    if (currentUserRole === 'admin') {
-      setTargetUserPublicId(
-        selectedUserPublicId,
-      )
-      setSearchParams(
-        selectedUserPublicId === ''
-          ? {}
-          : {
-              user_public_id:
-                selectedUserPublicId,
-            },
-      )
+      setQuery((current) => {
+        if (
+          current.startDate === nextQuery.startDate &&
+          current.startTime === nextQuery.startTime &&
+          current.endDate === nextQuery.endDate &&
+          current.endTime === nextQuery.endTime
+        ) {
+          return current
+        }
+
+        return nextQuery
+      })
+    }, filterDebounceMs)
+
+    return () => {
+      window.clearTimeout(timer)
     }
-
-    setQuery({
-      startDate:
-        startDateInput === ''
-          ? undefined
-          : startDateInput,
-      startTime:
-        startTimeInput === ''
-          ? undefined
-          : startTimeInput,
-      endDate:
-        endDateInput === ''
-          ? undefined
-          : endDateInput,
-      endTime:
-        endTimeInput === ''
-          ? undefined
-          : endTimeInput,
-    })
-  }
+  }, [
+    currentUserRole,
+    selectedUserPublicId,
+    startDateInput,
+    startTimeInput,
+    endDateInput,
+    endTimeInput,
+    setSearchParams,
+  ])
 
   function handleClearFilters() {
     setStartDateInput('')
@@ -322,7 +354,7 @@ export function AnalyticsPage({
         title: 'İşlem',
         key: 'detail',
         fixed: 'right',
-        align: 'right',
+        align: 'center',
         width: 110,
         render: () => (
           <Button
@@ -352,8 +384,12 @@ export function AnalyticsPage({
         </div>
       </div>
 
-      {currentUserRole === 'admin' && (
-        <section className="analytics-user-picker">
+      <Card
+        className="management-card"
+        title="Analitik görünümü"
+      >
+        {currentUserRole === 'admin' && (
+          <section className="analytics-user-picker">
           <h2>Kullanıcı filtresi</h2>
           <div className="analytics-user-search">
             <label>E-posta ara</label>
@@ -368,21 +404,13 @@ export function AnalyticsPage({
               }}
             />
             <Button
-              icon={<SearchOutlined />}
-              loading={usersLoading}
-              onClick={handleUserSearch}
-            >
-              Ara
-            </Button>
-            <Button
               disabled={usersLoading}
               onClick={() => {
                 setUserSearchInput('')
                 setSelectedUserPublicId('')
-                loadUserOptions()
               }}
             >
-              Temizle
+              Aramayı temizle
             </Button>
           </div>
           <div className="analytics-user-select">
@@ -417,13 +445,10 @@ export function AnalyticsPage({
               message={usersError}
             />
           )}
-        </section>
-      )}
+          </section>
+        )}
 
-      <form
-        className="table-filters analytics-table-filters"
-        onSubmit={handleFilterSubmit}
-      >
+      <div className="table-filters analytics-table-filters">
         <div>
           <label>Başlangıç tarihi</label>
           <input
@@ -465,16 +490,19 @@ export function AnalyticsPage({
           />
         </div>
         <Button
-          type="primary"
-          htmlType="submit"
-          icon={<SearchOutlined />}
+          icon={<ClearOutlined />}
+          disabled={
+            startDateInput === '' &&
+            startTimeInput === '' &&
+            endDateInput === '' &&
+            endTimeInput === '' &&
+            selectedUserPublicId === ''
+          }
+          onClick={handleClearFilters}
         >
-          Uygula
+          Filtreleri temizle
         </Button>
-        <Button onClick={handleClearFilters}>
-          Temizle
-        </Button>
-      </form>
+      </div>
 
       {error !== '' && (
         <Alert
@@ -500,6 +528,7 @@ export function AnalyticsPage({
           emptyText: 'Analitik verisi bulunamadı',
         }}
       />
+      </Card>
 
       <Drawer
         title="Analitik detayı"
